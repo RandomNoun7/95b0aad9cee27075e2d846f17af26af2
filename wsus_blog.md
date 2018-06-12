@@ -1,8 +1,8 @@
-Theme - Better together story PowerShell + tasks + PE
+**TODO Theme - Better together story PowerShell + tasks + PE**
 
 # Introduce bolt
 
-<TODO Needs a better intro>
+**TODO Needs a better intro**
 
 For this blog post I'll walk through writing a PowerShell based task for the [WSUS Client Puppet module](https://github.com/puppetlabs/puppetlabs-wsus_client).  This task will enumerate the update history of a computer, so we can see when certain updates have been applied.
 
@@ -23,115 +23,40 @@ Bolt is available as a [chocolatey package](https://chocolatey.org/packages/pupp
 PS> choco install puppet-bolt
 ```
 
-<Do we need to write this?>
 ### Installing Bolt as a gem
 
-Finally, you can install bolt as a ruby gem.  You could do this directly in your development ruby environment with `gem install bolt`, or by adding it to your Gemfile with `gem "bolt", :require => false`.  Note that if using the Gemfile method, you will need to prefix `bundle exec` for all of the examples below.
+Finally, you can install bolt as a ruby gem.  This is more complicated and the instructions are in the [bolt documentation](https://puppet.com/docs/bolt/latest/bolt_installing.html#task-4877).
 
 
 ## WinRM Configuration
 
-<TODO
-Add links to winrmr config in bolt docs
+Bolt can use SSH or WinRM to communicate with nodes, but with Windows a natural choice is WinRM.  While it is outside the scope of this blog to go over how to [configure your WinRM Service](https://msdn.microsoft.com/en-us/library/aa384372(v=vs.85).aspx), for these examples I am using the HTTP Listener (hot recommended for production use), with only the Kerberos and Negotiate authentication methods enabled.  This is a typical configuration when using the `winrm quickconfig` command.
 
-Add links to how to configure winrm from MSDN
+# Running a single command
 
-Reference docs for winrm quickconfig
->
-
-Bolt can use SSH or WinRM to communicate with nodes, but with Windows a natural choice is WinRM.  While it is outside the scope of this blog to go over how to configure your WinRM Service, for these examples I am using the HTTP Listener (hot recommended for production use), with only the Kerberos and Negotiate authentication methods enabled.  This is a typical configuration when using the `winrm quickconfig` command.
-
-# Running a Hello World bolt command
-
-Now that we have bolt installed we can run a test command to make sure it's working.
+Now that we have bolt installed we can run a test command to make sure it's working.  Let's list all the running processes;
 
 ``` powershell
-PS> bolt command run "Write-Output 'Hello World'" --nodes 127.0.0.1 --transport winrm --no-ssl --user Administrator --password
-Please enter your password:
-Started on 127.0.0.1...
-Finished on 127.0.0.1:
-  STDOUT:
-    Hello World
-Successful on 1 node: 127.0.0.1
-Ran on 1 node in 2.17 seconds
-```
-
-Let's breakdown the command line used
-
-`bolt command run` : This instructs bolt to run a single line command
-
-`"Write-Output 'Hello World'"` : This is the PowerShell command that we will run on the remote computer
-
-`--nodes 127.0.0.1` : We want to run the command against our local computer so we specify the node as 127.0.0.1.  Why not use localhost? As of right now, bolt has an experimental feature for local connections which does yet support PowerShell.  As a workaround we use the loopback address.
-
-`--transport winrm --no-ssl` : We then specify we want bolt to use WinRM, over the HTTP listener (as opposed to the default, HTTPS)
-
-`--user Administrator --password` : We then specify the username as Administrator, and prompt for the password.
-
-The output from bolt shows our Write-Host command:
-
-``` text
-  STDOUT:
-    Hello World
-```
-
-<TODO Get rid of the Hello-World and just use get-process table>
-
-What about something more practical.  Let's list all the running processes;
-
-``` powershell
-PS> bolt command run "Get-Process | ConvertTo-JSON" --nodes 127.0.0.1 --transport winrm --no-ssl --user Administrator --password
+PS> bolt command run "Get-Process" --nodes 127.0.0.1 --transport winrm --no-ssl --user Administrator --password
 Please enter your password:
 Started on 127.0.0.1...
 Finished on 127.0.0.1:
   STDOUT:
 
-...
-Lots and lots of text
+    Handles  NPM(K)    PM(K)      WS(K)     CPU(s)     Id  SI ProcessName
+    -------  ------    -----      -----     ------     --  -- -----------
+        183       9     3408       1660       0.53   4356   0 AdminService
+        790      45    38128      32720     355.83  12396   2 ApplicationFrameHost
+        156       8     1724        952       0.05  14296   0 AppVShNotify
+
 ...
 
-            "UserProcessorTime":  {
-                                      "Ticks":  312500,
-                                      "Days":  0,
-                                      "Hours":  0,
-                                      "Milliseconds":  31,
-                                      "Minutes":  0,
-                                      "Seconds":  0,
-                                      "TotalDays":  3.616898148148148E-07,
-                                      "TotalHours":  8.6805555555555555E-06,
-                                      "TotalMilliseconds":  31.25,
-                                      "TotalMinutes":  0.00052083333333333333,
-                                      "TotalSeconds":  0.03125
-                                  },
-            "VirtualMemorySize":  86880256,
-            "VirtualMemorySize64":  2203405103104,
-            "EnableRaisingEvents":  false,
-            "StandardInput":  null,
-            "StandardOutput":  null,
-            "StandardError":  null,
-            "WorkingSet":  7811072,
-            "WorkingSet64":  7811072,
-            "Site":  null,
-            "Container":  null,
-            "Name":  "WUDFHost",
-            "SI":  0,
-            "Handles":  269,
-            "VM":  2203405103104,
-            "WS":  7811072,
-            "PM":  2158592,
-            "NPM":  13120,
-            "Path":  "C:\\Windows\\System32\\WUDFHost.exe",
-            "Company":  "Microsoft Corporation",
-            "CPU":  0.078125,
-            "FileVersion":  "10.0.17134.1 (WinBuild.160101.0800)",
-            "ProductVersion":  "10.0.17134.1",
-            "Description":  "Windows Driver Foundation - User-mode Driver Framework Host Process",
-            "Product":  "Microsoft® Windows® Operating System",
-            "__NounName":  "Process"
-        }
-    ]
+         72       6     1492       1524       0.08  38212   0 WUDFCompanionHost
+        318      14     4668       5000     140.84    500   0 WUDFHost
+        674      23    49272      30332   6,460.53  35468   0 WUDFHost
+
 Successful on 1 node: 127.0.0.1
-Ran on 1 node in 24.63 seconds
+Ran on 1 node in 5.28 seconds
 ```
 
 Great!  This just listed all of the processes on my machine.  So let's move on to writing more than just a one line command; Puppet Tasks.
@@ -142,18 +67,79 @@ Tasks are similar to PowerShell script files, but they are kept in Puppet Module
 
 You can create a new task using the [Puppet Development Kit (PDK)](https://puppet.com/docs/pdk/1.x/pdk_reference.html#pdk-new-task-command) using the `pdk new task` command, or by creating a PS1 file in the `tasks` directory.
 
-## Writing a simple task
+## Creating a PowerShell task
+
+[Source Code Link](https://github.com/puppetlabs/puppetlabs-wsus_client/commit/4bcc461275a50e5bdb88e20fa8ca6ef2dbfd512f)
 
 So let's start with a task in the [WSUS Client module](https://github.com/puppetlabs/puppetlabs-wsus_client) to return the update history of a computer.
 
-We create the file `tasks/update_history.ps1` with the content in [this link](https://github.com/puppetlabs/puppetlabs-wsus_client/commit/4bcc461275a50e5bdb88e20fa8ca6ef2dbfd512f) (It's a little long).  You may ask why we don't simply use the popular [PSWindowsUpdate PowerShell module](https://www.powershellgallery.com/packages/PSWindowsUpdate)?  As we'll be running this on remote computers, we don't know if that module is installed, which means we shouldn't use it.
+We create the file `tasks/update_history.ps1` with the content in [this link](https://github.com/puppetlabs/puppetlabs-wsus_client/commit/4bcc461275a50e5bdb88e20fa8ca6ef2dbfd512f) (It's a little long).  You may ask why we don't simply use the popular [PSWindowsUpdate PowerShell module](https://www.powershellgallery.com/packages/PSWindowsUpdate)?  As we'll be running this on remote computers, we don't know if that module is installed, which means we shouldn't use it.  This is important to remember if you later publish your module for other people to use.
 
-<TODO Mention why we shouldn't take in dependencies>
+One of the great things about having a script file is that we can use our normal PowerShell tools (VS Code, ISE etc.) to write and test the script, and then use bolt to execute it.
 
-So let's make sure the task exists;
+To run the task manually, we can use normal PowerShell commands;
+
+``` powershell
+PS> .\tasks\update_history.ps1
+    {
+        "ServerSelection":  "WindowsUpdate",
+        "ClientApplicationID":  "Windows Defender Antivirus (77BDAF73-B396-481F-9042-AD358843EC24)",
+        "Categories":  [
+                           "Windows Defender"
+                       ],
+        "UnmappedResultCode":  0,
+        "Title":  "Definition Update for Windows Defender Antivirus - KB2267602 (Definition 1.269.1089.0)",
+        "UpdateIdentity":  {
+                               "RevisionNumber":  200,
+                               "UpdateID":  "340544b8-e4f0-4eb3-b7d8-04e6608986ea"
+                           },
+        "UninstallationNotes":  "",
+        "Description":  "Install this update to revise the definition files that are used to detect viruses, spyware, and other potentially unwanted software. Once you have installed this item, it cannot be removed.",
+        "SupportUrl":  "http://go.microsoft.com/fwlink/?LinkId=52661",
+        "ServiceID":  "",
+        "UninstallationSteps":  [
+
+                                ],
+        "Operation":  "Installation",
+        "Date":  "2018-06-12 01:48:16Z",
+        "ResultCode":  "Succeeded",
+        "HResult":  0
+    },
+...
+    {
+        "ServerSelection":  "Other",
+        "ClientApplicationID":  "UpdateOrchestrator",
+        "Categories":  [
+
+                       ],
+        "UnmappedResultCode":  0,
+        "Title":  "Feature update to Windows 10, version 1803",
+        "UpdateIdentity":  {
+                               "RevisionNumber":  1,
+                               "UpdateID":  "6850722b-d202-417f-b6d3-f45419191852"
+                           },
+        "UninstallationNotes":  "",
+        "Description":  "Install the latest update for Windows 10: the Windows 10 April 2018 Update.",
+        "SupportUrl":  "",
+        "ServiceID":  "8b24b027-1dee-babb-9a95-3517dfb9c552",
+        "UninstallationSteps":  [
+
+                                ],
+        "Operation":  "Installation",
+        "Date":  "2018-05-02 01:41:20Z",
+        "ResultCode":  "Succeeded",
+        "HResult":  0
+    }
+]
+```
+
+## Running a PowerShell task
+
+Now we can use bolt to run the task remotely.  But first let's make sure the task exists;
 
 ``` powershell
 PS> bolt task show --modulepath modules
+
 apply::resource               Apply a single Puppet resource
 facts                         Gather system facts
 facts::bash
@@ -179,28 +165,255 @@ The output shows lots of task names with our new task down the bottom of the lis
 wsus_client::update_history
 ```
 
-* All of the other tasks come as part of Bolt itself.  In this case I'm using Bolt v0.20.5.
+* All of the other tasks come as part of Bolt itself.  In this instance, we're using Bolt v0.20.5.
 
 * Tasks are uniquely named by the name of the module (`wsus_client`), a double colon (`::`) and then the task filename (`update_history`)
 
 So now we know Bolt can see our new task, let's run it;
 
+``` powershell
+PS> bolt task run wsus_client::update_history --modulepath modules --nodes 127.0.0.1 --transport winrm --no-ssl --user Administrator --password
+Started on 127.0.0.1...
+Finished on 127.0.0.1:
+  [
+      {
+          "ServerSelection":  "WindowsUpdate",
+          "ClientApplicationID":  "Windows Defender Antivirus (77BDAF73-B396-481F-9042-AD358843EC24)",
+                             "Windows Defender"
+          "Categories":  [
+                         ],
+          "UnmappedResultCode":  0,
+          "Title":  "Definition Update for Windows Defender Antivirus - KB2267602 (Definition 1.269.1089.0)",
+          "UpdateIdentity":  {
+                                 "RevisionNumber":  200,
+
+                                 "UpdateID":  "340544b8-e4f0-4eb3-b7d8-04e6608986ea"
+
+                             },
+          "UninstallationNotes":  "",
+          "Description":  "Install this update to revise the definition files that are used to detect viruses, spyware, and other potentially unwanted software. Once you have installed this item, it cannot be removed.",
+          "SupportUrl":  "http://go.microsoft.com/fwlink/?LinkId=52661",
+          "ServiceID":  "",
+          "UninstallationSteps":  [
+                                  ],
+          "Operation":  "Installation",
+          "Date":  "2018-06-12 01:48:16Z",
+          "ResultCode":  "Succeeded",
+          "HResult":  0
+      },
+...
+      {
+          "ServerSelection":  "Other",
+          "UninstallationSteps":  [
+          "ClientApplicationID":  "UpdateOrchestrator",
+          "Categories":  [
+                         ],
+          "UnmappedResultCode":  0,
+          "Title":  "Feature update to Windows 10, version 1803",
+          "UpdateIdentity":  {
+                                 "RevisionNumber":  1,
+                                 "UpdateID":  "6850722b-d202-417f-b6d3-f45419191852"
+                             },
+          "UninstallationNotes":  "",
+          "Description":  "Install the latest update for Windows 10: the Windows 10 April 2018 Update.",
+          "UninstallationSteps":  [
+          "SupportUrl":  "",
+          "ServiceID":  "8b24b027-1dee-babb-9a95-3517dfb9c552",
+          "Date":  "2018-05-02 01:41:20Z",
+          "Operation":  "Installation",
+          "ResultCode":  "Succeeded",
+                                  ],
+      }
+          "HResult":  0
+  ]
+  {
+  }
+Successful on 1 node: 127.0.0.1
+Ran on 1 node in 12.43 seconds
+```
+
+Comparing the output of the manual process versus the bolt process, they look almost the same.  There's additional data added at the end of the bolt output.
+
+```
+...
+{
+}
+```
+
+This will have error information when the task fails to run. **TODO Need to confirm this**
+
+## Why use ConvertTo-JSON?
+
+**TODO https://puppet.com/docs/bolt/0.x/writing_tasks.html#concept-87**
+
+**TODO Fill out**
+
+## Adding Script Parameters
+
+[Source Code Link](https://github.com/puppetlabs/puppetlabs-wsus_client/commit/f2ade674807c8079d97158adacda599f0d67b345)
+
+The output from the script is quite verbose.  What we really want is only return the information we need, but still have the ability to get everything.  So we need to add a `Detailed` script parameter;
+
+For brief information
+
+``` powershell
+PS> .\tasks\update_history.ps1
+```
+
+And for detailed information
+
+``` powershell
+PS> .\tasks\update_history.ps1 -Detailed
+```
+
+Bolt supports passing parameters to PowerShell scripts through named parameters.  So we need to add [cmdlet binding](https://puppet.com/docs/bolt/latest/writing_tasks.html#defining-parameters-in-windows) to the top of our script and specify the Detailed parameter.
+
+``` powershell
+[CmdletBinding()]
+Param(
+  [Parameter(Mandatory = $False)]
+  [Switch]$Detailed
+)
+...
+```
+
+And then change our output to add the additional settings.  I've left this out of the blog post but you can see them on the [WSUS Client GitHub repository](https://github.com/puppetlabs/puppetlabs-wsus_client/commit/f2ade674807c8079d97158adacda599f0d67b345#diff-1b9bad9ab08b53a5e96ced4852470040)
+
+So again let's try this locally in PowerShell;
+
+``` powershell
+PS> .\tasks\update_history.ps1
+...
+    {
+        "Categories":  [
+
+                       ],
+        "ServiceID":  "8b24b027-1dee-babb-9a95-3517dfb9c552",
+        "UpdateIdentity":  {
+                               "RevisionNumber":  1,
+                               "UpdateID":  "6850722b-d202-417f-b6d3-f45419191852"
+                           },
+        "Date":  "2018-05-02 01:41:20Z",
+        "ResultCode":  "Succeeded",
+        "Operation":  "Installation",
+        "Title":  "Feature update to Windows 10, version 1803"
+    }
+]
+```
+
+``` powershell
+PS> .\tasks\update_history.ps1 -Detailed
+...
+    {
+        "ServerSelection":  "Other",
+        "ClientApplicationID":  "UpdateOrchestrator",
+        "ServiceID":  "8b24b027-1dee-babb-9a95-3517dfb9c552",
+        "Title":  "Feature update to Windows 10, version 1803",
+        "UnmappedResultCode":  0,
+        "UpdateIdentity":  {
+                               "RevisionNumber":  1,
+                               "UpdateID":  "6850722b-d202-417f-b6d3-f45419191852"
+                           },
+        "UninstallationNotes":  "",
+        "Description":  "Install the latest update for Windows 10: the Windows 10 April 2018 Update.",
+        "SupportUrl":  "",
+        "Categories":  [
+
+                       ],
+        "Operation":  "Installation",
+        "Date":  "2018-05-02 01:41:20Z",
+        "ResultCode":  "Succeeded",
+        "HResult":  0,
+        "UninstallationSteps":  [
+
+                                ]
+    }
+]
+```
+
+Great! We can now change how much information we return, but how does Bolt use this? Bolt uses a metadata file to store information about the task, including the available parameters and their type.
+
+## Adding Task metadata
+
+[Task metadata files](https://puppet.com/docs/bolt/latest/writing_tasks.html#concept-677) are JSON formatted files with the same name as their script.  This means with our script called `tasks\update_history.ps1`, the metadata file will be called `tasks\update_history.json`.  So let's create that file with information about our task;
+
+``` json
+{
+  "description": "Returns a history of installed Windows Updates.",
+  "parameters": {
+    "detailed": {
+      "description": "Return detailed update information.  Default is to return basic information",
+      "type": "Optional[Boolean]"
+    }
+  },
+  "input_method": "powershell"
+}
+```
+
+Let's break this down;
+
+`"description": "Returns a history of installed Windows Updates.",` : This is a short description of the task.  When we previously ran the `bolt task show` command you may have noticed there's a description column, and some tasks had information there.  This is where that information comes from.
+
+`"parameters": {` : This is where we define the new Detailed parameter
+
+`"detailed": {` : The is the name of the new parameter.  Note that it is in lower case whereas in the script it's mixed case
+
+`"description": "Return detailed update i...,` : This is a short description of the parameter and is useful for people to understand how your task works
+
+`"type": "Optional[Boolean]"` : This defines the type of data we expect from the user when running the task and whether it is mandatory or optional.  Bolt types will be looked at next. **TODO Don't like this reference but not sure what else to use**
+
+`"input_method": "powershell"` : This tells bolt that it should use the PowerShell method when sending script parameters.  Normally this is not required as PowerShell script files (.PS1) will automatically use this method.  However at the time of writing there is a [bug in Bolt](https://tickets.puppetlabs.com/browse/BOLT-536), and as a workaround the input method has to be defined.
+
+The [bolt documentation](https://puppet.com/docs/bolt/latest/writing_tasks.html#reference-9297) lists all of the available settings in the metadata file.
 
 
+### Choosing a bolt parameter type
 
-  ## Where to shove the tasks files (module layout)
+In our PowerShell script the `Detailed` parameter is defined as;
 
-  ### PDK or exisiting
+```powershell
+  [Parameter(Mandatory = $False)]
+  [Switch]$Detailed
+```
 
-  ## Running the PS1 directly
+This is a boolean parameter which is not mandatory.  The equivalent defintion in a Bolt type is;
 
+``` text
+Optional[Boolean]
+```
 
-# Run via bolt
-  Start with no json tasks file
+This reads as a boolean type which is optional; that is, not mandatory.
 
-  Show adding parameters and invocation via bolt
+The [Bolt parameter types](https://puppet.com/docs/bolt/latest/writing_tasks.html#reference-3806) come from the Puppet Type system and can, mostly, be directly translated into PowerShell types and PowerShell parameter attributes
 
-  Show mapping Puppet Types to PowerShell Types (KISS)
+| Bolt Type            | PowerShell Parameter |
+| -------------------- | -------------------- |
+| `String`             | `[Parameter(Mandatory = $True)] [String] $Param` |
+| `Optional[String]`   | `[String] $Param` |
+| `String[5]`          | `[Parameter(Mandatory = $True)] [ValidateLength(5)] [String] $Param` |
+| `Pattern[/\A\w+\Z/]` | `[Parameter(Mandatory = $True)] [ValidatePattern({\A\w+\Z})] [String] $Param` |
+| `Integer`            | `[Parameter(Mandatory = $True)] [Int] $Param` |
+| `Integer[1, 20]`     | `[Parameter(Mandatory = $True)] [ValidateRange(1, 20)] [Int] $Param` |
+| `Optional[Integer]`  | `[Int] $Param` |
+| `Boolean`            | `[Parameter(Mandatory = $True)] [Switch] $Param` |
+| `Boolean`            | `[Parameter(Mandatory = $True)] [Bool] $Param` |
+| `Optional[Boolean]`  | `[Switch] $Param` |
+| `Optional[Boolean]`  | `[Bool] $Param` |
+
+* This is not a complete list, but commonly used script parameters
+
+* In Bolt, all parameters are mandatory unless the `Optional[]` type is used, whereas in PowerShell, parameters are optional unless `Mandatory = $True` is set
+
+* The default values of a task parameter need to be set in the PowerShell script, but are generally documented in the task matadata file
+
+* While you can create complex Bolt types and PowerShell parameters, it would be best to keep them as simple as possible (String, Int, Boolean) as the translation between both types is not always exact.  For example PowerShell parameters can use [Position](https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_functions_advanced_parameters?view=powershell-6#position-argument), [ParameterSetName](https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_functions_advanced_parameters?view=powershell-6#parametersetname-argument) and [ValidateScript](https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_functions_advanced_parameters?view=powershell-6#validatescript-validation-attribute), but they have no comparable Bolt type.
+
+The full list of available parameter types is located in the [Bolt documentation](https://puppet.com/docs/bolt/latest/writing_tasks.html#reference-3806), and more detailed Puppet type information in the [Puppet documentation](https://puppet.com/docs/puppet/5.5/lang_data_type.html).
+
+---
+
+# YET TO BE WRITTEN
+
 
   Progression
 
