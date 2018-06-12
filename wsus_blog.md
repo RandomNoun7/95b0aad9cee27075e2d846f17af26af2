@@ -146,7 +146,9 @@ You can create a new task using the [Puppet Development Kit (PDK)](https://puppe
 
 So let's start with a task in the [WSUS Client module](https://github.com/puppetlabs/puppetlabs-wsus_client) to return the update history of a computer.
 
-We create the file `tasks/update_history.ps1` with the content in [this link](https://github.com/puppetlabs/puppetlabs-wsus_client/commit/4bcc461275a50e5bdb88e20fa8ca6ef2dbfd512f) (It's a little long).  You may ask why we don't simply use the popular [PSWindowsUpdate PowerShell module](https://www.powershellgallery.com/packages/PSWindowsUpdate)?  As we'll be running this on remote computers, we don't know if that module is installed, which means we can't use it.
+We create the file `tasks/update_history.ps1` with the content in [this link](https://github.com/puppetlabs/puppetlabs-wsus_client/commit/4bcc461275a50e5bdb88e20fa8ca6ef2dbfd512f) (It's a little long).  You may ask why we don't simply use the popular [PSWindowsUpdate PowerShell module](https://www.powershellgallery.com/packages/PSWindowsUpdate)?  As we'll be running this on remote computers, we don't know if that module is installed, which means we shouldn't use it.
+
+<TODO Mention why we shouldn't take in dependencies>
 
 So let's make sure the task exists;
 
@@ -179,7 +181,7 @@ wsus_client::update_history
 
 * All of the other tasks come as part of Bolt itself.  In this case I'm using Bolt v0.20.5.
 
-* Tasks are named with the name of the module (`wsus_client`) and then the task filename (`update_history`).
+* Tasks are uniquely named by the name of the module (`wsus_client`), a double colon (`::`) and then the task filename (`update_history`)
 
 So now we know Bolt can see our new task, let's run it;
 
