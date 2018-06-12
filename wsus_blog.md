@@ -410,12 +410,19 @@ The [Bolt parameter types](https://puppet.com/docs/bolt/latest/writing_tasks.htm
 
 The full list of available parameter types is located in the [Bolt documentation](https://puppet.com/docs/bolt/latest/writing_tasks.html#reference-3806), and more detailed Puppet type information in the [Puppet documentation](https://puppet.com/docs/puppet/5.5/lang_data_type.html).
 
+
+**TODO do task show**
+
+**TODO do task show wsus_client::update_history**
+
+**TODO Run the task and show how to add parameters**
+
 ---
 
 # YET TO BE WRITTEN
 
 
-  Progression
+  Progression - adding more stuff
 
 
 # Running tasks in PE
