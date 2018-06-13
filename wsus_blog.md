@@ -70,7 +70,7 @@ Great!  This just listed all of the processes on my machine.  Let's breakdown th
 
 `--transport winrm --no-ssl` : We then specify we want bolt to use WinRM, over the HTTP listener (as opposed to HTTPS)
 
-`--user Administrator --password` : We then specify the username as Administrator, and prompt for the password.
+`--user Administrator --password` : We then specify the username as Administrator, and prompt for the password. **TODO Add reference that you CAN add your password in plain text here, but there are more secured methods of saving it**
 
 So let's move on to writing more than just a one line command; Puppet Tasks.
 
@@ -371,7 +371,7 @@ Let's break this down;
 
 `"detailed": {` : The is the name of the new parameter.  Note that it is in lower case whereas in the script it's mixed case
 
-`"description": "Return detailed update i...,` : This is a short description of the parameter and is useful for people to understand how your task works
+`"description": "Return detailed update ...,` : This is a short description of the parameter and is useful for people to understand how your task works
 
 `"type": "Optional[Boolean]"` : This defines the type of data we expect from the user when running the task and whether it is mandatory or optional.  Bolt types will be looked at next. **TODO Don't like this reference but not sure what else to use**
 
@@ -418,6 +418,8 @@ The [Bolt parameter types](https://puppet.com/docs/bolt/latest/writing_tasks.htm
 * In Bolt, all parameters are mandatory unless the `Optional[]` type is used, whereas in PowerShell, parameters are optional unless `Mandatory = $True` is set
 
 * The default values of a task parameter need to be set in the PowerShell script, but are generally documented in the task matadata file
+
+* **TODO Add link for Switch vs Boolean**
 
 * While you can create complex Bolt types and PowerShell parameters, it would be best to keep them as simple as possible (String, Int, Boolean) as the translation between both types is not always exact.  For example PowerShell parameters can use [Position](https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_functions_advanced_parameters?view=powershell-6#position-argument), [ParameterSetName](https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_functions_advanced_parameters?view=powershell-6#parametersetname-argument) and [ValidateScript](https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_functions_advanced_parameters?view=powershell-6#validatescript-validation-attribute), but they have no comparable Bolt type.
 
