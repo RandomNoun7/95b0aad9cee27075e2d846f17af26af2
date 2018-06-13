@@ -30,7 +30,7 @@ Finally, you can install bolt as a ruby gem.  This is more complicated and the i
 
 ## WinRM Configuration
 
-Bolt can use SSH or WinRM to communicate with nodes, but with Windows a natural choice is WinRM.  While it is outside the scope of this blog to go over how to [configure your WinRM Service](https://msdn.microsoft.com/en-us/library/aa384372(v=vs.85).aspx), for these examples I am using the HTTP Listener (hot recommended for production use), with only the Kerberos and Negotiate authentication methods enabled.  This is a typical configuration when using the `winrm quickconfig` command.
+Bolt can use SSH or WinRM to communicate with nodes, but with Windows a natural choice is WinRM.  While it is outside the scope of this blog to go over how to [configure your WinRM Service](https://msdn.microsoft.com/en-us/library/aa384372(v=vs.85).aspx), for these examples I am using the HTTP Listener (not recommended for production use), with only the Kerberos and Negotiate authentication methods enabled.  This is a typical configuration when using the `winrm quickconfig` command.
 
 # Running a single command
 
@@ -59,7 +59,19 @@ Successful on 1 node: 127.0.0.1
 Ran on 1 node in 5.28 seconds
 ```
 
-Great!  This just listed all of the processes on my machine.  So let's move on to writing more than just a one line command; Puppet Tasks.
+Great!  This just listed all of the processes on my machine.  Let's breakdown the command line used
+
+`bolt command run` : In this case we simply want to run a command.  Bolt can also run script files, tasks and plans
+
+`Get-Process` : This is the PowerShell command that we will run on the remote computer
+
+`--nodes 127.0.0.1` : We want to run the command against our local computer so we specify the node as 127.0.0.1.  Why not use localhost? As of right now, bolt has an experimental feature for local connections which does yet support PowerShell.  As a workaround we simply use the loopback address.
+
+`--transport winrm --no-ssl` : We then specify we want bolt to use WinRM, over the HTTP listener (as opposed to HTTPS)
+
+`--user Administrator --password` : We then specify the username as Administrator, and prompt for the password.
+
+So let's move on to writing more than just a one line command; Puppet Tasks.
 
 # Writing PowerShell tasks
 
