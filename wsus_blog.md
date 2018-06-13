@@ -410,10 +410,36 @@ The [Bolt parameter types](https://puppet.com/docs/bolt/latest/writing_tasks.htm
 
 The full list of available parameter types is located in the [Bolt documentation](https://puppet.com/docs/bolt/latest/writing_tasks.html#reference-3806), and more detailed Puppet type information in the [Puppet documentation](https://puppet.com/docs/puppet/5.5/lang_data_type.html).
 
+## Viewing Task metadata
 
-**TODO do task show**
+Now that we have some task metadata, let's display that information in bolt;
 
-**TODO do task show wsus_client::update_history**
+``` text
+PS> bolt task show --modulepath modules
+
+...
+wsus_client::update_history   Returns a history of installed Windows Updates.
+```
+
+We can now see the description of task in the output.  Now let's get more more information about our task;
+
+``` text
+PS> bolt task show wsus_client::update_history --modulepath modules
+
+wsus_client::update_history - Returns a history of installed Windows Updates.
+
+USAGE:
+bolt task run --nodes, -n <node-name> wsus_client::update_history [detailed=<value>]
+
+PARAMETERS:
+- detailed: Optional[Boolean]
+    Return detailed update information.  Default is to return basic information
+```
+
+By adding the task name to the show command (`... show show wsus_client::update_history `) the output shows the complete information about the task, including all available parameters.
+
+## Running a task with parameters
+
 
 **TODO Run the task and show how to add parameters**
 
