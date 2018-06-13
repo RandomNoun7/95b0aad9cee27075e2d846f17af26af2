@@ -9,7 +9,8 @@ For this blog post I'll walk through writing a PowerShell based task for the [WS
 # Setting up
 
 ## Install Bolt
-So first up, we need Puppet Bolt installed.  There are a few ways we could do this on Windows, all of which are describe in the [Bolt documentation](https://puppet.com/docs/bolt/latest/bolt_installing.html).
+
+There are a few ways we could do this on Windows, all of which are described in the [Bolt documentation](https://puppet.com/docs/bolt/latest/bolt_installing.html).
 
 ### Installing Bolt as an MSI
 
