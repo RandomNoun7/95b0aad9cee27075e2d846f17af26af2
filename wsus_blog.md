@@ -1,7 +1,7 @@
 **TODO Theme - Better together story PowerShell + tasks + PE**
 **TODO Should I be using Bolt Task or bolt task?**
 
-# PowerShell and Tasks, and Bolt, Oh my! - Part 1
+# PowerShell and Tasks and Bolt, Oh my! - Part 1
 ## Writing PowerShell tasks on Windows, for Windows
 
 
