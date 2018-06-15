@@ -1,5 +1,8 @@
 **TODO Theme - Better together story PowerShell + tasks + PE**
+
 **TODO Should I be using Bolt Task or bolt task?**
+
+**TODO Should I use the term computer, machine, node, host?**
 
 # PowerShell and Tasks and Bolt, Oh my! - Part 1
 ## Writing PowerShell tasks on Windows, for Windows
@@ -8,37 +11,6 @@
 **TODO Needs a better intro**
 
 For this blog post I'll walk through writing a PowerShell based task for the [WSUS Client Puppet module](https://github.com/puppetlabs/puppetlabs-wsus_client).  This task will enumerate the update history of a computer, so we can see when certain updates have been applied.
-
-**TODO Need to introduce the glossary better, BUT at least I have one!**
-## What are Commands, Scripts, Tasks and Plans?
-
-### Commands
-
-A bolt command is a single line of text which can be executed, for example `Write-Host "Hello World!"`
-
-### Scripts
-
-From the [Bolt documentation](https://puppet.com/docs/bolt/latest/running_bolt_commands.html)
-
-> You can execute scripts on remote machines with Bolt.
->
-> Bolt copies the script from the local system to the remote node, executes it on that remote node, and then deletes the script from the remote node.
-
-A bolt script is a single file containing many commands.  In this instance it will be a PowerShell file, for example `update_history.ps1`
-
-### Tasks
-
-From the [Bolt documentation](https://puppet.com/docs/bolt/latest/writing_tasks_and_plans.html)
-
-> Puppet tasks are single, ad hoc actions that you can run on target machines in your infrastructure, allowing you to make as-needed changes to remote systems
-
-Tasks use Scripts and then execute them on remote machines.
-
-### Plans
-
-From the [Bolt documentation](https://puppet.com/docs/bolt/latest/writing_tasks_and_plans.html)
-
-> Plans are sets of tasks that can be combined with other logic. This allows you to do more complex task operations, such as running multiple tasks with one command, computing values for the input for a task, or running certain tasks based on results of another task.
 
 # Setting up
 
@@ -67,15 +39,48 @@ Finally, you can install bolt as a ruby gem.  This is more complicated and the i
 
 Bolt can use SSH or WinRM to communicate with nodes, but with Windows a natural choice is WinRM.  While it is outside the scope of this blog to go over how to [configure your WinRM Service](https://msdn.microsoft.com/en-us/library/aa384372(v=vs.85).aspx), for these examples I am using the HTTP Listener (not recommended for production use), with only the Kerberos and Negotiate authentication methods enabled.  This is a typical configuration when using the `winrm quickconfig` command.
 
+# What are Commands, Scripts, Tasks and Plans?
+
+Bolt uses the terms Commands, Scripts, Tasks and Plans, so it best to define what they mean first.
+
+### Commands
+
+A bolt command is a single line of text which can be executed on a computer, for example in PowerShell `Write-Host "Hello World!"`
+
+### Scripts
+
+From the [Bolt documentation](https://puppet.com/docs/bolt/latest/running_bolt_commands.html)
+
+> You can execute scripts on remote machines with Bolt.
+>
+> Bolt copies the script from the local system to the remote node, executes it on that remote node, and then deletes the script from the remote node.
+
+A bolt script is a single file containing many commands.  In this instance it will be a PowerShell file, for example `update_history.ps1`
+
+### Tasks
+
+From the [Bolt documentation](https://puppet.com/docs/bolt/latest/writing_tasks_and_plans.html)
+
+> Puppet tasks are single, ad hoc actions that you can run on target machines in your infrastructure, allowing you to make as-needed changes to remote systems
+
+Tasks use Scripts and then execute them on remote machines.
+
+### Plans
+
+From the [Bolt documentation](https://puppet.com/docs/bolt/latest/writing_tasks_and_plans.html)
+
+> Plans are sets of tasks that can be combined with other logic. This allows you to do more complex task operations, such as running multiple tasks with one command, computing values for the input for a task, or running certain tasks based on results of another task.
+
+
 # Running a single command
 
 Now that we have bolt installed we can run a test command to make sure it's working.  Let's list all the running processes;
 
 ``` powershell
-PS> bolt command run "Get-Process" --nodes 127.0.0.1 --transport winrm --no-ssl --user Administrator --password
+PS> bolt command run "Get-Process" --nodes winrm://localhost --no-ssl --user Administrator --password
 Please enter your password:
-Started on 127.0.0.1...
-Finished on 127.0.0.1:
+Started on localhost...
+Finished on localhost:
   STDOUT:
 
     Handles  NPM(K)    PM(K)      WS(K)     CPU(s)     Id  SI ProcessName
@@ -90,7 +95,7 @@ Finished on 127.0.0.1:
         318      14     4668       5000     140.84    500   0 WUDFHost
         674      23    49272      30332   6,460.53  35468   0 WUDFHost
 
-Successful on 1 node: 127.0.0.1
+Successful on 1 node: localhost
 Ran on 1 node in 5.28 seconds
 ```
 
@@ -100,15 +105,15 @@ Great!  This just listed all of the processes on my machine.  Let's breakdown th
 
 `Get-Process` : This is the PowerShell command that we will run on the remote computer
 
-`--nodes 127.0.0.1` : We want to run the command against our local computer so we specify the node as 127.0.0.1.  Why not use localhost? As of right now, bolt has an experimental feature for local connections which does yet support PowerShell.  As a workaround we simply use the loopback address.
+`--nodes winrm://localhost` : We want to run the command against our local computer, so we specify the transport as `winrm` and the name `localhost`.  The [Bolt documentation](https://puppet.com/docs/bolt/latest/bolt_options.html#concept-743) describes the ways you can specify multiple nodes, or use an [inventory file](https://puppet.com/docs/bolt/latest/inventory_file.html).
 
-`--transport winrm --no-ssl` : We then specify we want bolt to use WinRM, over the HTTP listener (as opposed to HTTPS)
+`--no-ssl` : We then specify we want bolt to use the HTTP listener (as opposed to HTTPS)
 
 `--user Administrator --password` : We then specify the username as Administrator, and prompt for the password.
 
 While you can add the password on the commandline, it's not very secure as it may appear in your console history or in a tool like [Process Explorer](https://docs.microsoft.com/en-us/sysinternals/downloads/process-explorer), which can see the command line for a process.
 
-It's also a good idea to put `--password` at the very end of the command, so that Bolt doesn't accidentally think other options are the actual password.  For example, don't do this `... --password detailed=true`, as Bolt will try to authenticate with the password `detailed=value` instead of, prompting for the password and then passing the script parameter called `detailed`.
+It's also a good idea to put `--password` at the very end of the command, so that Bolt doesn't accidentally think other options are the actual password.  For example, don't do this `... --password detailed=true`, as Bolt will try to authenticate with the password `detailed=value` instead of prompting for the password and then passing the script parameter called `detailed`.
 
 So let's move on to writing more than just a one line command; Puppet Tasks.
 
@@ -116,14 +121,14 @@ So let's move on to writing more than just a one line command; Puppet Tasks.
 
 Tasks are similar to PowerShell script files, but they are kept in Puppet Modules and can have metadata. This allows you to reuse and share them more easily.  So the first thing you need when writing a PowerShell task, is a Puppet module.  Tasks reside in the `tasks` directory; For example [here](https://github.com/puppetlabs/puppetlabs-reboot/tree/e81be2b9ad9fa4367648e27e8aea98e3e0ad32dd/tasks) in the Windows Reboot module or [here](https://github.com/puppetlabs/puppetlabs-mysql/tree/bd9d7adcc70be61ca86dcc31e16568e24e96a4bb/tasks) in the MySQL module.
 
-You can create a new task using the [Puppet Development Kit (PDK)](https://puppet.com/docs/pdk/1.x/pdk_reference.html#pdk-new-task-command), using the `pdk new task` command, or by creating a PS1 file in the `tasks` [directory](https://puppet.com/docs/puppet/latest/modules_fundamentals.html#module-structure).
+You can create a new task using the [Puppet Development Kit (PDK)](https://puppet.com/docs/pdk/1.x/pdk_reference.html#pdk-new-task-command) with the `pdk new task` command, or by creating a PS1 file in the `tasks` [directory](https://puppet.com/docs/puppet/latest/modules_fundamentals.html#module-structure).
 
 ``` text
 <MODULE NAME>
-  +- manifests
   +- lib
   |    +- facter
   |    ...
+  +- manifests
   ...
   +- spec
   +- tasks      <---- Tasks go here!
@@ -236,9 +241,9 @@ wsus_client::update_history
 So now we know Bolt can see our new task, let's run it;
 
 ``` powershell
-PS> bolt task run wsus_client::update_history --modulepath modules --nodes 127.0.0.1 --transport winrm --no-ssl --user Administrator --password
-Started on 127.0.0.1...
-Finished on 127.0.0.1:
+PS> bolt task run wsus_client::update_history --modulepath modules --nodes winrm://localhost --no-ssl --user Administrator --password
+Started on localhost...
+Finished on localhost:
   [
       {
           "ServerSelection":  "WindowsUpdate",
@@ -292,19 +297,17 @@ Finished on 127.0.0.1:
   ]
   {
   }
-Successful on 1 node: 127.0.0.1
+Successful on 1 node: localhost
 Ran on 1 node in 12.43 seconds
 ```
 
-Comparing the output of the manual process versus the bolt process, they look almost the same.  There's additional data added at the end of the bolt output.
+Comparing the output of the manual process versus the bolt process, they look almost the same.  There's additional data added at the end of the bolt output, which can be ignored.
 
 ```
 ...
 {
 }
 ```
-
-This will have error information when the task fails to run. **TODO Need to confirm this**
 
 ## Why use ConvertTo-JSON?
 
@@ -327,7 +330,7 @@ The string is now in a JSON format.
 
 For small, simple PowerShell scripts this method may be fine, but for complex data, like the `update_history.ps1` file we used earlier, it's quite difficult to do.  A quick search in your favourite search engine for "convertto-json powershell 2" may guide you to some good workarounds.
 
-There is a [feature request](https://tickets.puppetlabs.com/browse/BOLT-406) to add JSON support for PowerShell 2.0, but right now that is not available.
+There is a [Bolt feature request](https://tickets.puppetlabs.com/browse/BOLT-406) to add JSON support for PowerShell 2.0, but right now that is not available.
 
 # Adding Script Parameters
 
@@ -443,7 +446,7 @@ Let's break this down;
 
 `"description": "Return detailed update ...,` : This is a short description of the parameter and is useful for people to understand how your task works
 
-`"type": "Optional[Boolean]"` : This defines the type of data we expect from the user when running the task and whether it is mandatory or optional.  Bolt types will be looked at next. **TODO Don't like this reference but not sure what else to use**
+`"type": "Optional[Boolean]"` : This defines the type of data we expect from the user when running the task and whether it is mandatory or optional.  We will go into more detail about Bolt types below.
 
 `"input_method": "powershell"` : This tells bolt that it should use the PowerShell method when sending script parameters.  Normally this is not required as PowerShell script files (.PS1) will automatically use this method.  However at the time of writing there is a [bug in Bolt](https://tickets.puppetlabs.com/browse/BOLT-536), and as a workaround the input method has to be defined.
 
@@ -526,10 +529,10 @@ By adding the task name to the show command (`... show show wsus_client::update_
 The `task show` Bolt command actaully gives us an example of how to use task parameters `... [detailed=<value>]`.  So let's run the task with detailed output;
 
 ``` text
-PS> bolt task run wsus_client::update_history detailed=true --modulepath modules --nodes 127.0.0.1 --transport winrm --no-ssl --user Administrator --password
+PS> bolt task run wsus_client::update_history detailed=true --modulepath modules --nodes winrm://localhost --no-ssl --user Administrator --password
 Please enter your password:
-Started on 127.0.0.1...
-Finished on 127.0.0.1:
+Started on localhost...
+Finished on localhost:
 ...
       },
       {
@@ -559,17 +562,17 @@ Finished on 127.0.0.1:
   ]
   {
   }
-Successful on 1 node: 127.0.0.1
+Successful on 1 node: localhost
 Ran on 1 node in 3.14 seconds
 ```
 
 We added `detailed=true` to the command line, which passes the parameter to the PowerShell script.  We can also use `detailed=false` to return only the basic information, which is the same as the default behavior;
 
 ``` text
-PS> bolt task run wsus_client::update_history detailed=false --modulepath modules --nodes 127.0.0.1 --transport winrm --no-ssl --user Administrator --password
+PS> bolt task run wsus_client::update_history detailed=false --modulepath modules --nodes winrm://localhost --no-ssl --user Administrator --password
 Please enter your password:
-Started on 127.0.0.1...
-Finished on 127.0.0.1:
+Started on localhost...
+Finished on localhost:
 ...
       },
       {
@@ -589,14 +592,14 @@ Finished on 127.0.0.1:
   ]
   {
   }
-Successful on 1 node: 127.0.0.1
+Successful on 1 node: localhost
 Ran on 1 node in 2.65 seconds
 ```
 
 What if we pass in something other than `true` or `false`? such as `abc123`?
 
 ``` text
-PS> bolt task run wsus_client::update_history detailed=abc123 --modulepath modules --nodes 127.0.0.1 --transport winrm --no-ssl --user Administrator --password
+PS> bolt task run wsus_client::update_history detailed=abc123 --modulepath modules --nodes winrm://localhost --no-ssl --user Administrator --password
 Please enter your password:
 Task wsus_client::update_history:
  parameter 'detailed' expects a value of type Undef or Boolean, got String
@@ -608,7 +611,7 @@ Bolt will validate the input, but as we'll see later, it's really useful when us
 
 [Source Code Link](https://github.com/puppetlabs/puppetlabs-wsus_client/commit/5eff63e891822d4efa8c1af29940b66fa5b9aee3)
 
-Instead of returning all of the updates, it would be great to add some filtering, by their name, by a unique identification number (UpdateID) and to limit the total number returned.  Let's add three more parameters using the same development process.
+Instead of returning all of the updates, it would be great to add some filtering - by their name, by a unique identification number (UpdateID) and to limit the total number returned.  Let's add three more parameters using the same development process.
 
 The parameters we'll add are;
 
@@ -712,10 +715,10 @@ PARAMETERS:
 ### 5. Run the task with the new parameters using Bolt
 
 ``` text
-PS> bolt task run wsus_client::update_history updateid=6850722b-d202-417f-b6d3-f45419191852 --modulepath modules --nodes 127.0.0.1 --transport winrm --no-ssl --user Administrator --password
+PS> bolt task run wsus_client::update_history updateid=6850722b-d202-417f-b6d3-f45419191852 --modulepath modules --nodes winrm://localhost --no-ssl --user Administrator --password
 Please enter your password:
-Started on 127.0.0.1...
-Finished on 127.0.0.1:
+Started on localhost...
+Finished on localhost:
   {
     "Categories": [
 
@@ -730,7 +733,7 @@ Finished on 127.0.0.1:
     "Operation": "Installation",
     "Title": "Feature update to Windows 10, version 1803"
   }
-Successful on 1 node: 127.0.0.1
+Successful on 1 node: localhost
 Ran on 1 node in 3.39 seconds
 ```
 
@@ -740,6 +743,15 @@ Now that we have our task working we can share the module, and the task, on the 
 
 The Puppet Forge also includes a helpful [search filter](https://forge.puppet.com/modules?utf-8=%E2%9C%93&page_size=25&with_tasks=true) to find modules that have tasks.
 
+# Wrapping up
+
+We created and tested a PowerShell script on our local computer, and then turned that into a Bolt Task. We then packaged the module so others could use the task.
+
+But that's just the beginning ... The task used in this blog was only retrieving information, but tasks can also make changes to the computer;  We could start downloading updates or applying updates.  Or we could combine this task other tasks to create more complex workflows, for example; patching Active Directory Domain Controllers, or multi-computer Remote Desktop Services farms.
+
+Tasks and Plans are very powerful tools to orchestrate your already powerful PowerShell scripts!
+
+In Part 2, we'll look at how Tasks, Puppet Enterprise and PowerShell can integrate together
 
 ---------------------------------------------------------
 **TODO Add wrap up an segway into Part 2**
