@@ -22,7 +22,7 @@ So this means we're already doing some kind of testing, but it still doesn't ans
 
 ## What testing tools are out there?
 
-While we could use a testing tool to create a Windows Virtual Machine, in the case of the [WSUS Client Module](https://github.com/puppetlabs/puppetlabs-wsus_client) this would be difficult and time consuming to do.  So instead we can use [Pester](https://github.com/pester/Pester) which is a testing and mocking framework for PowerShell.  In fact it's one of only a few Open Source projects which is [shipped with Windows itself!](https://twitter.com/jsnover/status/590178510485860352).
+While we could use a testing tool to create a Windows Virtual Machine, in the case of the [WSUS Client Module](https://github.com/puppetlabs/puppetlabs-wsus_client) this would be difficult and time consuming to do.  So instead we can use [Pester](https://github.com/pester/Pester) which is a testing and mocking framework for PowerShell.  In fact it's one of only a few Open Source projects which is [shipped in Windows itself!](https://twitter.com/jsnover/status/590178510485860352).
 
 **TODO** Need to add disclaimer.  This isn't how to use pester, but how we integrated pester into testing pipeline
 
@@ -32,7 +32,7 @@ While we could use a testing tool to create a Windows Virtual Machine, in the ca
 
 [Source Code Link](https://github.com/puppetlabs/puppetlabs-wsus_client/commit/bd92f86c82ebcdf6f93e57490a586cfb68557fbd)
 
-Great, so we can use Pester to test our PowerShell task file, but ... there is a problem.  In order to test the script we need to import it.  We do this using [dot sourcing](https://ss64.com/ps/source.html) the test script.  However this _actually_ runs the script and outputs information.
+Great, so we can use Pester to test our PowerShell task file, but ... there is a problem.  In order to test the script we need to import it.  We do this by [dot sourcing](https://ss64.com/ps/source.html) the test script.  However this _actually_ runs the script and outputs information.
 
 ```
 PS> . .\tasks\update_history.ps1
@@ -55,13 +55,13 @@ PS> . .\tasks\update_history.ps1
 ...
 ```
 
-Also, because the script is written with the logic in the root of the script, instead of a function, we have no easy way to execute the script in our tests.
+Also, because the script is written with the logic in the root, instead of in a function, we have no easy way to execute the script in our tests.
 
-In short, the code I wrote may work, but it was not easily testable!!
+In short, the code I wrote may work, but it was not easily testable!
 
 ### Wrapping the main function
 
-Firstly we need to be able to execution the logic of the script from Pester.  To do this we needed to move all of the logic into it's own function.  For example, if the script used to look like;
+Firstly we need to be able to separate loading the script and running the script. To do this we needed to move all of the logic into it's own function. For example, if the script used to look like;
 
 ```
 $Session = New-Object -ComObject "Microsoft.Update.Session"
@@ -98,15 +98,13 @@ Invoke-ExecuteTask -Detailed $Detailed -Title $Title -UpdateID $UpdateID -Maximu
 
 Notice how the function `Invoke-ExecuteTask` just wraps around the old logic.  It still does the same thing, just in a function.
 
-Note - For those more advanced in PowerShell you may ask why I didn't use [Cmdlet Binding](https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_functions_advanced?view=powershell-6) in the function header. I could have easily defined this is an advanced function however I did not think it was necessary.  The input validation already happens at the top of the script and as this is private function, no user would be explicitly calling it.
+Note - For those more advanced in PowerShell you may ask why I didn't use [Cmdlet Binding](https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_functions_advanced?view=powershell-6) in the function header. I could have easily defined this is an advanced function however I did not think it was necessary.  The input validation already happens at the top of the script and as this is private function, and no user would be explicitly calling it.
 
 ### Stopping execution
 
-So now we could call the logic of the script in Pester, but we still had the problem of it actually running the script when we imported it. What we needed was a flag of somekind which could tell the script to execute or not when imported.  There are a number of different types of flags; Setting environment variables or registry keys of files on disk.  However in PowerShell the simpliest method is to just have a script parameter.
+So now we could call the logic of the script in Pester, but we still had the problem of it actually running the script when we imported it. What we needed was a flag of some kind which could tell the script to execute or not when imported.  There are a number of different types of flags; Setting environment variables or registry keys of files on disk.  However in PowerShell the simpliest method is to just have a script parameter.
 
 Note - Using a script parameter was appropriate for the WSUS Client module but you may prefer to use something else
-
-So what did this look like;
 
 At the top of the script [we added](https://github.com/puppetlabs/puppetlabs-wsus_client/blob/bd92f86c82ebcdf6f93e57490a586cfb68557fbd/tasks/update_history.ps1#L15-L16) the `NoOperation` parameter;
 
@@ -125,13 +123,15 @@ if (-Not $NoOperation) { Invoke-ExecuteTask }
 
 This created a switch parameter called `NoOperation` which would default to `false`, that is, it would execute the script. By using `. .\tasks\update_history.ps1 -NoOperation` we could tell the script to not execute and just import the functions for testing.
 
+Note - For those more advanced in PowerShell you may ask why I didn't use the [WhatIf](https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_commonparameters?view=powershell-6#risk-management-parameter-descriptions) parameter instead. The `WhatIf` parameter is more geared towards a user interaction. While yes it could've been used, all we needed was just simple switch parameter.
+
 ## Writing Pester tests
 
 Now that we could successfully import the PowerShell Task file, it was time to write the tests.
 
 ### Writing simple tests
 
-The first tests we wrote simply test the enumeration functions, these converted the number style codes into their text version; for example an `OperationResultCode` of 1 means the update is "In Progress"
+The first tests simply tested the enumeration functions. These functions converted the number style codes into their text version; for example an `OperationResultCode` of 1 means the update is "In Progress"
 
 So first we add the Pester [standard PowerShell commands](https://github.com/puppetlabs/puppetlabs-wsus_client/blob/bd92f86c82ebcdf6f93e57490a586cfb68557fbd/spec/tasks/update_history.Tests.ps1#L1-L7);
 ```
@@ -156,7 +156,7 @@ When then test each of the enumeration functions to ensure the the conversions o
 
 ### Writing more tests
 
-So now we had some simple tests written and passing, we could finish off writing the rest of the tests. Fortunately with testing, we should be describing each of our tests in simple english. I decided that the following tests would be sufficient;
+So now we had some simple tests written, and passing, we could finish off writing the rest of the tests. Fortunately with testing, we should be describing each of our tests in simple english. I decided that the following tests would be sufficient;
 
 * [should return empty JSON if no history](https://github.com/puppetlabs/puppetlabs-wsus_client/blob/354c34e19f0f251da6c16c055a137d4fd4a55970/spec/tasks/update_history.Tests.ps1#L71-L76)
 * [should return a JSON array for a single element](https://github.com/puppetlabs/puppetlabs-wsus_client/blob/354c34e19f0f251da6c16c055a137d4fd4a55970/spec/tasks/update_history.Tests.ps1#L78-L87)
