@@ -20,6 +20,8 @@ In software testing this is known as [Arrange, Act, Assert](http://wiki.c2.com/?
 
 So this means we're already doing some kind of testing, but it still doesn't answer the question of 'Why should I test?'. Testing our tasks means that as we add functionality or change things, we can be sure that it still behaves the same way. And by using an automated testing tool (because let's be honest who likes manual testing anyway!) we can run the tests in our module CI pipeline.
 
+***I'm not sure this is grammatically correct or not, it just seemed out of place to have a capitol W in the middle of a sentence. It's tough to see but the change is adding quotes around 'Why should I test?'***
+
 ## What testing tools are out there?
 
 While we could use a testing tool to create a Windows Virtual Machine, in the case of the [WSUS Client Module](https://github.com/puppetlabs/puppetlabs-wsus_client) this would be difficult and time consuming to do.  So instead we can use [Pester](https://github.com/pester/Pester) which is a testing and mocking framework for PowerShell.  In fact it's one of only a few Open Source projects which is [shipped in Windows itself!](https://twitter.com/jsnover/status/590178510485860352).
@@ -28,6 +30,8 @@ Note - this blog post won't go into how to write Pester tests.  A quick [search]
 
 
 **TODO** Do I need to show how to use Pester? Probably not
+
+***Agree, probably not.***
 
 ## Writing testable PowerShell
 
@@ -57,6 +61,12 @@ PS> . .\tasks\update_history.ps1
 ```
 
 Also, because the script is written with the logic in the root, instead of in a function, we have no easy way to execute the script in our tests.
+
+***`logic in the root` It took me a minute to figure out what was meant by this.
+Consider leading with what as wrong. Something like `because the script as
+written did not use functions, dot sourcing the files always executed all of the
+logic in the file. There was no easy way to execute the script without also
+executing all of the logic it contains.`***
 
 In short, the code I wrote may work, but it was not easily testable!
 
@@ -173,6 +183,8 @@ So now we had some simple tests written, and passing, we could finish off writin
 
 While writing the test it became apparent that the `Invoke-ExecuteTask` function still wasn't easily testable. The function created a[`Microsoft.Update.Session`](https://github.com/puppetlabs/puppetlabs-wsus_client/blob/bd92f86c82ebcdf6f93e57490a586cfb68557fbd/tasks/update_history.ps1#L69-L71) COM object.  This object was then used to query the system for update history.  However this meant the testing could only query the existing system, and that we wouldn't be able to see the behaviour if there no updates available, or 1000 updates.  What we needed to do was mock the response of the COM object so we could test the function properly.
 
+***The change here is just a typo in `response`.***
+
 Fortunately Pester provides a mocking feature, however the function needed to be modified so we could mock the response.  So again we wrapped the logic in another function:
 
 Previously we [had](https://github.com/puppetlabs/puppetlabs-wsus_client/blob/bd92f86c82ebcdf6f93e57490a586cfb68557fbd/tasks/update_history.ps1#L68-L71)
@@ -241,6 +253,11 @@ Running the Pester tests showed a failure.  The `should return a JSON array for 
 ```
 
 This failure turned out to be a valid.  When the bolt task runs it should return a JSON Array, even for a single update.  This turned out to be a peculiarity with PowerShell and piping objects.  With a single object in the pipe, the JSON conversion just returns the object, whereas with two or more objects the JSON conversion returns an array.
+
+***Might be worth pointing out explicitly that the win here is that you were able
+to identify and isolate a bug in the code, before the code ever shipped and
+customers had a chance to run into it, and before you even knew the bug existed,
+simply because you wrote the test.***
 
 In this case the [fix](https://github.com/puppetlabs/puppetlabs-wsus_client/commit/786717c5dbafa1e33d28d5f2c5a5081d227cf9a8) was fairly simple.  I manually added the opening and closing brackets to the string if there was only one object in the pipe! Running Pester again showed all tests passed!
 
