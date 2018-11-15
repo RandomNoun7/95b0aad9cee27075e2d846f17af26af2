@@ -1,6 +1,6 @@
 # Combining PowerShell, Bolt and Puppet Tasks - Part 2
 
-In [Part 1](https://puppet.com/blog/combining-powershell-bolt-and-puppet-tasks-part-1) of this blog servies we created and ran a PowerShell script on our local computer, and then turned that into a Bolt Task. We then packaged the module so others could use the task. In Part 2 we going to look at how to test the PowerShell script.
+In [Part 1](https://puppet.com/blog/combining-powershell-bolt-and-puppet-tasks-part-1) of this blog series we created and ran a PowerShell script on our local computer, and then turned that into a Bolt Task. We then packaged the module so others could use the task. In Part 2 we going to look at how to test the PowerShell script.
 
 ## Why test tasks?
 
@@ -18,7 +18,7 @@ In software testing this is known as [Arrange, Act, Assert](http://wiki.c2.com/?
 * (Act) Ran the bolt command
 * (Assert) The output from the command is the same as the metadata information
 
-So this means we're already doing some kind of testing, but it still doesn't answer the question of Why should I test. Testing our tasks means that as we add functionality or change things, we can be sure that it still behaves the same way. And by using an automated testing tool (because let's be honest who likes manual testing anyway!) we can run the tests in our module CI pipeline.
+So this means we're already doing some kind of testing, but it still doesn't answer the question of 'Why should I test?'. Testing our tasks means that as we add functionality or change things, we can be sure that it still behaves the same way. And by using an automated testing tool (because let's be honest who likes manual testing anyway!) we can run the tests in our module CI pipeline.
 
 ## What testing tools are out there?
 
@@ -103,7 +103,7 @@ Note - For those more advanced in PowerShell you may ask why I didn't use [Cmdle
 
 ### Stopping execution
 
-So now we could call the logic of the script in Pester, but we still had the problem of it actually running the script when we imported it. What we needed was a flag of some kind which could tell the script to execute or not when imported.  There are a number of different types of flags; Setting environment variables or registry keys of files on disk.  However in PowerShell the simpliest method is to just have a script parameter.
+So now we could call the logic of the script in Pester, but we still had the problem of it actually running the script when we imported it. What we needed was a flag of some kind which could tell the script to execute or not when imported.  There are a number of different types of flags; Setting environment variables or registry keys of files on disk.  However in PowerShell the simplest method is to just have a script parameter.
 
 Note - Using a script parameter was appropriate for the WSUS Client module but you may prefer to use something else
 
@@ -151,7 +151,7 @@ These commands;
 * Import any shared helper functions (`spec_helper.ps1`). This blog post didn't add any, but in the future they may be used
 * Imports the script under test. Note the use of the new `-NoOperation` parameter
 
-When then test each of the enumeration functions to ensure the the conversions of number to text are what we expect. For example the tests for the [Convert-ToServerSelectionString](https://github.com/puppetlabs/puppetlabs-wsus_client/blob/bd92f86c82ebcdf6f93e57490a586cfb68557fbd/spec/tasks/update_history.Tests.ps1#L9-L25) function check the output for the numbers 0 to 3
+We then test each of the enumeration functions to ensure the the conversions of number to text are what we expect. For example the tests for the [Convert-ToServerSelectionString](https://github.com/puppetlabs/puppetlabs-wsus_client/blob/bd92f86c82ebcdf6f93e57490a586cfb68557fbd/spec/tasks/update_history.Tests.ps1#L9-L25) function check the output for the numbers 0 to 3.
 
 **TODO** Do I need to show a passing pester run?
 
@@ -171,7 +171,7 @@ So now we had some simple tests written, and passing, we could finish off writin
 
 [Source Code Link](https://github.com/puppetlabs/puppetlabs-wsus_client/commit/354c34e19f0f251da6c16c055a137d4fd4a55970)
 
-While writing the test it became apparent that the `Invoke-ExecuteTask` function still wasn't easily testable. The function created a[`Microsoft.Update.Session`](https://github.com/puppetlabs/puppetlabs-wsus_client/blob/bd92f86c82ebcdf6f93e57490a586cfb68557fbd/tasks/update_history.ps1#L69-L71) COM object.  This object was then used to query the system for update history.  However this meant the testing could only query the existing system, and that we wouldn't be able to see the behaviour if there no updates available, or 1000 updates.  What we needed to do was mock the respsonse of the COM object so we could test the function properly.
+While writing the test it became apparent that the `Invoke-ExecuteTask` function still wasn't easily testable. The function created a[`Microsoft.Update.Session`](https://github.com/puppetlabs/puppetlabs-wsus_client/blob/bd92f86c82ebcdf6f93e57490a586cfb68557fbd/tasks/update_history.ps1#L69-L71) COM object.  This object was then used to query the system for update history.  However this meant the testing could only query the existing system, and that we wouldn't be able to see the behaviour if there no updates available, or 1000 updates.  What we needed to do was mock the response of the COM object so we could test the function properly.
 
 Fortunately Pester provides a mocking feature, however the function needed to be modified so we could mock the response.  So again we wrapped the logic in another function:
 
@@ -240,7 +240,7 @@ Running the Pester tests showed a failure.  The `should return a JSON array for 
     [+] should return a matching updates when Title is specified 73ms
 ```
 
-This failure turned out to be a valid.  When the bolt task runs it should return a JSON Array, even for a single update.  This turned out to be a percularity with PowerShell and piping objects.  With a single object in the pipe, the JSON conversion just returns the object, whereas with two or more objects the JSON convertsion returns an array.
+This failure turned out to be a valid.  When the bolt task runs it should return a JSON Array, even for a single update.  This turned out to be a peculiarity with PowerShell and piping objects.  With a single object in the pipe, the JSON conversion just returns the object, whereas with two or more objects the JSON conversion returns an array.
 
 In this case the [fix](https://github.com/puppetlabs/puppetlabs-wsus_client/commit/786717c5dbafa1e33d28d5f2c5a5081d227cf9a8) was fairly simple.  I manually added the opening and closing brackets to the string if there was only one object in the pipe! Running Pester again showed all tests passed!
 
